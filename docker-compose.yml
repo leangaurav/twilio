@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  TwilioVoiceEcho:
+    build:
+      context: .
+      dockerfile: dockerfiles/twiliovoiceecho.dockerfile
+    command: >
+      -m app.main
+    environment:
+      BIND_ADDRESS: "${BIND_ADDRESS}"
+      HOST_ADDRESS: "${HOST_ADDRESS}"
+      MAX_CALL_DURATION: "${MAX_CALL_DURATION}"
+    image: twilio_voice_echo
+    network_mode: "host"
+    restart: "always"
