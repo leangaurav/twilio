@@ -1,8 +1,10 @@
+import argparse
 import asyncio
 import json
 import  os
 import time
 import weakref
+from dataclasses import dataclass
 
 import aiohttp
 from aiohttp import web
@@ -11,16 +13,13 @@ from aiohttp import WSCloseCode
 from utils import get_logger
 
 LOGGER = get_logger()
-BIND_ADDRESS = os.environ.get("BIND_ADDRESS", None)
-HOST_ADDRESS = os.environ.get("HOST_ADDRESS", None)
-MAX_CALL_DURATION = int(os.environ.get("MAX_CALL_DURATION", 30))
 
-if HOST_ADDRESS is None:
-    LOGGER.error("Missing HOST_ADDRESS:{HOST_ADDRESS}")
-    exit()
-if BIND_ADDRESS is None :
-    LOGGER.error("Missing BIND_ADDRESS:{BIND_ADDRESS}")
-    exit()
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--bind_address', required=True, type=str, help='an integer for the accumulator')
+    parser.add_argument('--ws_host', required=True, type=str, help='public host address')
+    parser.add_argument('--max_call_time', type=int, default=30, help='Maximum time in seconds for call to run. -1 to disable')
+    return parser.parse_args()
 
 def process_message(msg: str):
     try:
@@ -96,7 +95,6 @@ async def websocket_handler(request):
 
 async def twiml_handler(request):
     LOGGER.info(f"Twiml headers {request.headers}")
-    LOGGER.info(f"Twiml headers {list(request.query.items())}")
     text  = await request.text()
     LOGGER.info(f"Twiml headers {text}")
 
@@ -104,7 +102,7 @@ async def twiml_handler(request):
     <Response>
         <Say>This is an echo bot </Say>
         <Connect>
-           <Stream url="{HOST_ADDRESS}/call" />
+           <Stream url="{WS_ADDRESS}/call" />
         </Connect>
     </Response>"""
 
@@ -117,6 +115,19 @@ async def on_shutdown(app):
                        message='Server shutdown')
 
 if __name__ == "__main__":
+
+    args = parse_args()
+    WS_ADDRESS = args.ws_host
+    BIND_ADDRESS = args.bind_address
+    MAX_CALL_DURATION = args.max_call_time
+
+    if WS_ADDRESS is None:
+        LOGGER.error("Missing WS_ADDRESS:{WS_ADDRESS}")
+        exit()
+    if BIND_ADDRESS is None :
+        LOGGER.error("Missing BIND_ADDRESS:{BIND_ADDRESS}")
+        exit()
+
     host, port = BIND_ADDRESS.rsplit(":", 1)
     port = int(port)
     LOGGER.info(f"Running: host={host} port={port}")
